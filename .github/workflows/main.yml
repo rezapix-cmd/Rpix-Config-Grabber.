@@ -2,10 +2,10 @@ name: Rpix Auto Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 * * * *' # شروع مجدد کل فرآیند هر یک ساعت
 
 permissions:
-  contents: write # این خط اجازه میده ربات فایل‌های export رو آپدیت کنه
+  contents: write
 
 jobs:
   build:
@@ -29,6 +29,20 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Update Configs" || echo "No changes"
-          git push
+          # هدف قرار دادن تمام فایل‌های داخل اکسپورت برای حل مشکل آپدیت نشدن
+          git add export/sub.txt export/sub_ios.txt export/sub_b64.txt count.txt
+          git commit -m "Update All Configs: $(date)" || echo "No changes"
+          git push origin main
+
+      - name: Check and Retry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COUNT=$(cat count.txt)
+          if [ "$COUNT" -lt 50 ]; then
+            echo "تعداد $COUNT کمتر از حد نصاب ۵۰ است. ۵ دقیقه دیگر دوباره تلاش می‌کنم..."
+            sleep 300
+            gh workflow run main.yml
+          else
+            echo "هدف ۵۰ تایی محقق شد. عملیات با موفقیت پایان یافت."
+          fi
