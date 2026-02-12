@@ -1,8 +1,8 @@
 name: Rpix Auto Update
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *' # هر ساعت یکبار
+  workflow_dispatch: # برای اجرای دستی توسط خودت
 
 jobs:
   build:
@@ -12,27 +12,35 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-      - run: pip install requests
-      - run: python main.py
-      - name: Commit and Push
+          
+      - name: Install Dependencies
+        run: pip install requests
+        
+      - name: Run Python Script
+        run: python main.py
+        
+      - name: Save and Push Changes
         run: |
           git config --global user.name "actions-user"
           git config --global user.email "actions@github.com"
           git add .
-          git commit -m "Update: $(date)" || echo "No changes"
+          git commit -m "Auto Update: $(date)" || echo "No changes"
           git push
-      - name: Retry if under 50
+          
+      - name: Check Count and Retry
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           COUNT=$(cat count.txt || echo 0)
           if [ "$COUNT" -lt 50 ]; then
-            echo "Count is $COUNT, retrying in 5 minutes..."
+            echo "تعداد فعلی $COUNT است، ۵ دقیقه دیگر دوباره تلاش می‌کنم..."
             sleep 300
             gh workflow run "Rpix Auto Update" --ref main
           else
-            echo "Goal reached: $COUNT configs found."
+            echo "تبریک! هدف ۵۰ کانفیگ محقق شد."
           fi
